@@ -1,5 +1,4 @@
 #include <X11/X.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
