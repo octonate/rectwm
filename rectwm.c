@@ -113,11 +113,19 @@ void handleKeyPress(XKeyEvent *ev) {
                 execvp("alacritty", NULL);
             }
             break;
+        case XK_b:
+            if (fork() == 0) {
+                execvp("firefox", NULL);
+            }
+            break;
         case XK_q:
             XCloseDisplay(dpy);
             break;
-        case XK_space:
+        case XK_l:
             clientNext();
+            break;
+        case XK_h:
+            clientPrev();
             break;
         case XK_w:
             if (isNoClient) break;
@@ -168,8 +176,10 @@ int main() {
 
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Return), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_q), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_space), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_l), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_h), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_w), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_b), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
     XSelectInput(dpy, root, SubstructureNotifyMask | SubstructureRedirectMask); 
     XDefineCursor(dpy, root, XCreateFontCursor(dpy, 68));
 
