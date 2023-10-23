@@ -15,6 +15,7 @@
 static Display *dpy;
 static Window root;
 
+
 typedef struct Client {
     Window win;
     struct Client *next, *prev;
@@ -24,7 +25,6 @@ typedef enum {NEXT, PREV} Dir;
 
 static Client *focusedClient;
 static bool isNoClient = True;
-
 
 void clientFocus() {
     if (isNoClient) return;
@@ -79,6 +79,19 @@ void clientDelete(Window win) {
         }
     }
     free(client);
+    clientFocus();
+}
+void clientKill2(Window win) {
+    if (isNoClient) return;
+
+    XEvent killEv;
+    killEv.xclient.type = ClientMessage;
+    killEv.xclient.window = win;
+    killEv.xclient.message_type = XInternAtom(dpy, "WM_PROTOCOLS", True);
+    killEv.xclient.format = 32;
+    killEv.xclient.data.l[0] = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+    killEv.xclient.data.l[1] = CurrentTime;
+    XSendEvent(dpy, win, False, NoEventMask, &killEv);
 }
 
 void clientKill(Window win) {
@@ -145,7 +158,6 @@ void handleKeyPress(XKeyEvent *ev) {
 
 void handleDestroyNotify(XDestroyWindowEvent *ev) {
     clientDelete(ev->window);
-    clientFocus();
 }
 
 
@@ -181,7 +193,6 @@ int main() {
     XSetErrorHandler(0);
 
     root = DefaultRootWindow(dpy);
-
 
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Return), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_q), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
