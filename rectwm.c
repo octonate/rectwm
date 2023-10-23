@@ -81,18 +81,6 @@ void clientDelete(Window win) {
     free(client);
     clientFocus();
 }
-void clientKill2(Window win) {
-    if (isNoClient) return;
-
-    XEvent killEv;
-    killEv.xclient.type = ClientMessage;
-    killEv.xclient.window = win;
-    killEv.xclient.message_type = XInternAtom(dpy, "WM_PROTOCOLS", True);
-    killEv.xclient.format = 32;
-    killEv.xclient.data.l[0] = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
-    killEv.xclient.data.l[1] = CurrentTime;
-    XSendEvent(dpy, win, False, NoEventMask, &killEv);
-}
 
 void clientKill(Window win) {
     if (isNoClient) return;
