@@ -20,6 +20,8 @@ typedef struct Client {
     struct Client *next, *prev;
 } Client;
 
+typedef enum {NEXT, PREV} Dir;
+
 static Client *focusedClient;
 static bool isNoClient = True;
 
@@ -30,6 +32,16 @@ void clientFocus() {
     XSetInputFocus(dpy, focusedClient->win, RevertToParent, CurrentTime);
 }
 
+void clientCycle(Dir dir) {
+    if (isNoClient) return;
+    if (dir == NEXT) {
+        focusedClient = focusedClient->next;
+    } else {
+        focusedClient = focusedClient->prev;
+    }
+    clientFocus();
+}
+
 void clientAdd(Window win) {
     Client *newClient = malloc(sizeof (Client));
     newClient->win = win;
@@ -37,8 +49,7 @@ void clientAdd(Window win) {
         focusedClient = newClient;
         focusedClient->next = focusedClient;
         focusedClient->prev = focusedClient;
-    }
-    else {
+    } else {
         newClient->next = focusedClient;
         newClient->prev = focusedClient->prev;
         focusedClient->prev->next = newClient;
@@ -70,18 +81,18 @@ void clientDelete(Window win) {
     free(client);
 }
 
-
-void clientNext() {
+void clientKill(Window win) {
     if (isNoClient) return;
-    focusedClient = focusedClient->next;
-    clientFocus();
-}
-void clientPrev() {
-    if (isNoClient) return;
-    focusedClient = focusedClient->prev;
-    clientFocus();
-}
 
+    XEvent killEv;
+    killEv.xclient.type = ClientMessage;
+    killEv.xclient.window = win;
+    killEv.xclient.message_type = XInternAtom(dpy, "WM_PROTOCOLS", True);
+    killEv.xclient.format = 32;
+    killEv.xclient.data.l[0] = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+    killEv.xclient.data.l[1] = CurrentTime;
+    XSendEvent(dpy, win, False, NoEventMask, &killEv);
+}
 
 
 void handleConfigureRequest(XConfigureRequestEvent *ev) {
@@ -121,14 +132,13 @@ void handleKeyPress(XKeyEvent *ev) {
             XCloseDisplay(dpy);
             break;
         case XK_l:
-            clientNext();
+            clientCycle(NEXT);
             break;
         case XK_h:
-            clientPrev();
+            clientCycle(PREV);
             break;
         case XK_w:
-            if (isNoClient) break;
-            XKillClient(dpy, focusedClient->win);
+            clientKill(focusedClient->win);
             break;
     }
 }
