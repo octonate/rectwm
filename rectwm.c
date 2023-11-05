@@ -63,10 +63,10 @@ void clientAdd(Window win) {
         focusedClient->next = focusedClient;
         focusedClient->prev = focusedClient;
     } else {
-        newClient->next = focusedClient;
-        newClient->prev = focusedClient->prev;
-        focusedClient->prev->next = newClient;
-        focusedClient->prev = newClient;
+        newClient->next = focusedClient->next;
+        newClient->prev = focusedClient;
+        focusedClient->next->prev = newClient;
+        focusedClient->next= newClient;
 
         focusedClient = newClient;
     }
