@@ -1,4 +1,3 @@
-#include <X11/X.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
@@ -9,20 +8,35 @@
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
+#include <X11/XF86keysym.h>
 
 #define MOD_MASK Mod4Mask
 
 static Display *dpy;
 static Window root;
 
-
 typedef struct Client {
     Window win;
     struct Client *next, *prev;
 } Client;
 
+typedef struct {
+    uint mod;
+    KeySym key;
+    void (*func)(void **args);
+    void **args;
+} KeyBind;
+
+
+
 static Client *focusedClient;
 static bool isNoClient = True;
+
+void exec(void *args[]) {
+    if (fork() == 0) {
+        execvp((char *)args[0], (char **)args);
+    }
+}
 
 void clientFocus() {
     if (isNoClient) return;
@@ -94,6 +108,10 @@ void clientKill() {
     XSendEvent(dpy, focusedClient->win, False, NoEventMask, &killEv);
 }
 
+void quit() {
+    XCloseDisplay(dpy);
+}
+
 
 void handleConfigureRequest(XConfigureRequestEvent *ev) {
     XConfigureWindow(dpy, ev->window, ev->value_mask, &(XWindowChanges) {
@@ -115,31 +133,29 @@ void handleMapRequest(XMapRequestEvent *ev) {
     clientFocus();
 }
 
+/* KEY BIND CONFIGURATION */
+static KeyBind keyBinds[] = {
+//  { mod key,  key,              address of function,     function arguments },
+//                                (must be void func)      (must cast as void ptr array)
+    { MOD_MASK, XK_w,                     &clientKill,               0 },
+    { MOD_MASK, XK_h,                     &clientPrev,               0 },
+    { MOD_MASK, XK_l,                     &clientNext,               0 },
+
+    { MOD_MASK, XK_q,             (void *)&XCloseDisplay, (void *[]){&dpy,        0} },
+    { MOD_MASK, XK_Return,                &exec,          (void *[]){"alacritty", 0} },
+    { MOD_MASK, XK_b,                     &exec,          (void *[]){"firefox",   0} },
+
+    { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set", "+10", 0} },
+    { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set", "10-", 0} },
+};
+
 void handleKeyPress(XKeyEvent *ev) {
     KeySym keysym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 0);
-    switch (keysym) {
-        case XK_Return:
-            if (fork() == 0) {
-                execvp("alacritty", NULL);
-            }
-            break;
-        case XK_b:
-            if (fork() == 0) {
-                execvp("firefox", NULL);
-            }
-            break;
-        case XK_q:
-            XCloseDisplay(dpy);
-            break;
-        case XK_l:
-            clientPrev();
-            break;
-        case XK_h:
-            clientNext();
-            break;
-        case XK_w:
-            clientKill();
-            break;
+
+    for (uint i = 0; i < sizeof (keyBinds) / sizeof (KeyBind); ++i) {
+        if (keyBinds[i].key == keysym) {
+            keyBinds[i].func(keyBinds[i].args);
+        }
     }
 }
 
@@ -171,6 +187,7 @@ void loop() {
     }
 }
 
+
 int main() {
     dpy = XOpenDisplay(NULL);
     if (dpy == NULL) {
@@ -181,12 +198,9 @@ int main() {
 
     root = DefaultRootWindow(dpy);
 
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Return), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_q), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_l), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_h), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_w), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
-    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_b), MOD_MASK, root, true, GrabModeAsync, GrabModeAsync);
+    for (uint i = 0; i < sizeof (keyBinds) / sizeof (KeyBind); ++i) {
+        XGrabKey(dpy, XKeysymToKeycode(dpy, keyBinds[i].key), keyBinds[i].mod, root, true, GrabModeAsync, GrabModeAsync);
+    }
     XSelectInput(dpy, root, SubstructureNotifyMask | SubstructureRedirectMask); 
     XDefineCursor(dpy, root, XCreateFontCursor(dpy, 68));
 
