@@ -108,11 +108,6 @@ void clientKill() {
     XSendEvent(dpy, focusedClient->win, False, NoEventMask, &killEv);
 }
 
-void quit() {
-    XCloseDisplay(dpy);
-}
-
-
 void handleConfigureRequest(XConfigureRequestEvent *ev) {
     XConfigureWindow(dpy, ev->window, ev->value_mask, &(XWindowChanges) {
         .x = ev->x,
