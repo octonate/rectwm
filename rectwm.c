@@ -10,10 +10,8 @@
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
 
+// change to whatever mod key you want
 #define MOD_MASK Mod4Mask
-
-static Display *dpy;
-static Window root;
 
 typedef struct Client {
     Window win;
@@ -27,9 +25,9 @@ typedef struct {
     void **args;
 } KeyBind;
 
-
-
 static Client *focusedClient;
+static Display *dpy;
+static Window root;
 static bool isNoClient = True;
 
 void exec(void *args[]) {
@@ -49,6 +47,7 @@ void clientNext() {
     focusedClient = focusedClient->next;
     clientFocus();
 }
+
 void clientPrev() {
     if (isNoClient) return;
     focusedClient = focusedClient->prev;
@@ -108,6 +107,22 @@ void clientKill() {
     XSendEvent(dpy, focusedClient->win, False, NoEventMask, &killEv);
 }
 
+/* KEY BIND CONFIGURATION */
+static KeyBind keyBinds[] = {
+//  { mod key,  key,              address of function,     function arguments },
+//                                (must be void func)      (must cast as void ptr array)
+    { MOD_MASK, XK_w,                     &clientKill,               0 },
+    { MOD_MASK, XK_h,                     &clientPrev,               0 },
+    { MOD_MASK, XK_l,                     &clientNext,               0 },
+
+    { MOD_MASK, XK_q,             (void *)&XCloseDisplay, (void *[]){&dpy,        0} },
+    { MOD_MASK, XK_Return,                &exec,          (void *[]){"alacritty", 0} },
+    { MOD_MASK, XK_b,                     &exec,          (void *[]){"firefox",   0} },
+
+    { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set", "+5", 0} },
+    { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set", "5-", 0} },
+};
+
 void handleConfigureRequest(XConfigureRequestEvent *ev) {
     XConfigureWindow(dpy, ev->window, ev->value_mask, &(XWindowChanges) {
         .x = ev->x,
@@ -128,22 +143,6 @@ void handleMapRequest(XMapRequestEvent *ev) {
     clientFocus();
 }
 
-/* KEY BIND CONFIGURATION */
-static KeyBind keyBinds[] = {
-//  { mod key,  key,              address of function,     function arguments },
-//                                (must be void func)      (must cast as void ptr array)
-    { MOD_MASK, XK_w,                     &clientKill,               0 },
-    { MOD_MASK, XK_h,                     &clientPrev,               0 },
-    { MOD_MASK, XK_l,                     &clientNext,               0 },
-
-    { MOD_MASK, XK_q,             (void *)&XCloseDisplay, (void *[]){&dpy,        0} },
-    { MOD_MASK, XK_Return,                &exec,          (void *[]){"alacritty", 0} },
-    { MOD_MASK, XK_b,                     &exec,          (void *[]){"firefox",   0} },
-
-    { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set", "+10", 0} },
-    { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set", "10-", 0} },
-};
-
 void handleKeyPress(XKeyEvent *ev) {
     KeySym keysym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 0);
 
@@ -157,7 +156,6 @@ void handleKeyPress(XKeyEvent *ev) {
 void handleDestroyNotify(XDestroyWindowEvent *ev) {
     clientDelete(ev->window);
 }
-
 
 void loop() {
     XEvent ev;
@@ -182,7 +180,6 @@ void loop() {
     }
 }
 
-
 int main() {
     dpy = XOpenDisplay(NULL);
     if (dpy == NULL) {
@@ -198,7 +195,6 @@ int main() {
     }
     XSelectInput(dpy, root, SubstructureNotifyMask | SubstructureRedirectMask); 
     XDefineCursor(dpy, root, XCreateFontCursor(dpy, 68));
-
 
     loop();
     
