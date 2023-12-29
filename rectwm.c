@@ -10,9 +10,6 @@
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
 
-// change to whatever mod key you want
-#define MOD_MASK Mod4Mask
-
 typedef struct Client {
     Window win;
     struct Client *next, *prev;
@@ -107,7 +104,12 @@ void clientKill() {
     XSendEvent(dpy, focusedClient->win, False, NoEventMask, &killEv);
 }
 
+
 /* KEY BIND CONFIGURATION */
+
+// change this to whatever mod key you want
+#define MOD_MASK Mod4Mask
+
 static KeyBind keyBinds[] = {
 //  { mod key,  key,              address of function,     function arguments },
 //                                (must be void func)      (must cast as void ptr array)
@@ -119,8 +121,10 @@ static KeyBind keyBinds[] = {
     { MOD_MASK, XK_Return,                &exec,          (void *[]){"alacritty", 0} },
     { MOD_MASK, XK_b,                     &exec,          (void *[]){"firefox",   0} },
 
-    { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set", "+5", 0} },
-    { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set", "5-", 0} },
+    { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set",  "+5",           0} },
+    { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set",  "5-",           0} },
+    { 0,        XF86XK_AudioLowerVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "1-", 0} },
+    { 0,        XF86XK_AudioRaiseVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "1+", 0} },
 };
 
 void handleConfigureRequest(XConfigureRequestEvent *ev) {
