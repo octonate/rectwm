@@ -162,6 +162,10 @@ void handleDestroyNotify(XDestroyWindowEvent *ev) {
     clientDelete(ev->window);
 }
 
+void handleUnmapNotify(XUnmapEvent *ev) {
+    clientDelete(ev->window);
+}
+
 void handleMotionNotify(XMotionEvent *ev) {
     if (isNoClient) return;
     XMoveWindow(dpy, focusedClient->win, mouse.x_root, mouse.y_root);
@@ -189,6 +193,9 @@ void loop() {
             case MotionNotify:
                 mouse = ev.xbutton;
                 handleMotionNotify(&ev.xmotion);
+                break;
+            case UnmapNotify:
+                handleUnmapNotify(&ev.xunmap);
                 break;
         }
     }
