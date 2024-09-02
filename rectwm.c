@@ -1,3 +1,4 @@
+#include <X11/X.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
@@ -9,6 +10,7 @@
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
+#include <X11/Xutil.h>
 
 typedef struct Client {
     Window win;
@@ -26,6 +28,7 @@ static Client *focusedClient;
 static Display *dpy;
 static Window root;
 static bool isNoClient = True;
+static XButtonEvent mouse;
 
 void exec(void *args[]) {
     if (fork() == 0) {
@@ -104,7 +107,6 @@ void clientKill() {
     XSendEvent(dpy, focusedClient->win, False, NoEventMask, &killEv);
 }
 
-
 /* KEY BIND CONFIGURATION */
 
 // change this to whatever mod key you want
@@ -123,14 +125,13 @@ static KeyBind keyBinds[] = {
 
     { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set",  "+5",           0} },
     { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set",  "5-",           0} },
-    { 0,        XF86XK_AudioLowerVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "1-", 0} },
-    { 0,        XF86XK_AudioRaiseVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "1+", 0} },
+    { 0,        XF86XK_AudioLowerVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "5-", 0} },
+    { 0,        XF86XK_AudioRaiseVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "5+", 0} },
 };
 
 void handleConfigureRequest(XConfigureRequestEvent *ev) {
     XConfigureWindow(dpy, ev->window, ev->value_mask, &(XWindowChanges) {
-        .x = ev->x,
-        .y = ev->y,
+        .x = 0, .y = 0,
         .width = ev->width,
         .height = ev->height,
         .border_width = ev->border_width,
@@ -161,6 +162,11 @@ void handleDestroyNotify(XDestroyWindowEvent *ev) {
     clientDelete(ev->window);
 }
 
+void handleMotionNotify(XMotionEvent *ev) {
+    if (isNoClient) return;
+    XMoveWindow(dpy, focusedClient->win, mouse.x_root, mouse.y_root);
+}
+
 void loop() {
     XEvent ev;
 
@@ -180,6 +186,10 @@ void loop() {
             case DestroyNotify:
                 handleDestroyNotify(&ev.xdestroywindow);
                 break;
+            case MotionNotify:
+                mouse = ev.xbutton;
+                handleMotionNotify(&ev.xmotion);
+                break;
         }
     }
 }
@@ -197,6 +207,7 @@ int main() {
     for (uint i = 0; i < sizeof (keyBinds) / sizeof (KeyBind); ++i) {
         XGrabKey(dpy, XKeysymToKeycode(dpy, keyBinds[i].key), keyBinds[i].mod, root, true, GrabModeAsync, GrabModeAsync);
     }
+    XGrabButton(dpy, 1, MOD_MASK, root, true, ButtonPressMask | ButtonReleaseMask | PointerMotionMask, GrabModeAsync, GrabModeAsync, 0, 0);
     XSelectInput(dpy, root, SubstructureNotifyMask | SubstructureRedirectMask); 
     XDefineCursor(dpy, root, XCreateFontCursor(dpy, 68));
 
