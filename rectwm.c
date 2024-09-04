@@ -123,10 +123,11 @@ static KeyBind keyBinds[] = {
     { MOD_MASK, XK_Return,                &exec,          (void *[]){"alacritty", 0} },
     { MOD_MASK, XK_b,                     &exec,          (void *[]){"firefox",   0} },
 
-    { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set",  "+5",           0} },
-    { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set",  "5-",           0} },
-    { 0,        XF86XK_AudioLowerVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "5-", 0} },
-    { 0,        XF86XK_AudioRaiseVolume,  &exec,          (void *[]){"amixer",        "sset", "Master", "5+", 0} },
+    { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set", "+5",           0} },
+    { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set", "5-",           0} },
+
+    { 0,        XF86XK_AudioLowerVolume,  &exec,          (void *[]){"amixer", "-D", "pulse", "sset", "Master", "5%-", 0} },
+    { 0,        XF86XK_AudioRaiseVolume,  &exec,          (void *[]){"amixer", "-D", "pulse", "sset", "Master", "5%+", 0} },
 };
 
 void handleConfigureRequest(XConfigureRequestEvent *ev) {
