@@ -130,48 +130,6 @@ static KeyBind keyBinds[] = {
     { 0,        XF86XK_AudioRaiseVolume,  &exec,          (void *[]){"amixer", "-D", "pulse", "sset", "Master", "5%+", 0} },
 };
 
-void handleConfigureRequest(XConfigureRequestEvent *ev) {
-    XConfigureWindow(dpy, ev->window, ev->value_mask, &(XWindowChanges) {
-        .x = 0, .y = 0,
-        .width = ev->width,
-        .height = ev->height,
-        .border_width = ev->border_width,
-        .sibling = ev->above,
-        .stack_mode = ev->detail
-    });
-}
-
-void handleMapRequest(XMapRequestEvent *ev) {
-    XSelectInput(dpy, ev->window, StructureNotifyMask|EnterWindowMask);
-    clientAdd(ev->window);
-    XResizeWindow(dpy, ev->window, DisplayWidth(dpy, DefaultScreen(dpy)), DisplayHeight(dpy, DefaultScreen(dpy)));
-    XMapWindow(dpy, ev->window);
-    clientFocus();
-}
-
-void handleKeyPress(XKeyEvent *ev) {
-    KeySym keysym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 0);
-
-    for (uint i = 0; i < sizeof (keyBinds) / sizeof (KeyBind); ++i) {
-        if (keyBinds[i].key == keysym) {
-            keyBinds[i].func(keyBinds[i].args);
-        }
-    }
-}
-
-void handleDestroyNotify(XDestroyWindowEvent *ev) {
-    clientDelete(ev->window);
-}
-
-void handleUnmapNotify(XUnmapEvent *ev) {
-    clientDelete(ev->window);
-}
-
-void handleMotionNotify(XMotionEvent *ev) {
-    if (isNoClient) return;
-    XMoveWindow(dpy, focusedClient->win, mouse.x_root, mouse.y_root);
-}
-
 void loop() {
     XEvent ev;
 
@@ -179,25 +137,54 @@ void loop() {
         XNextEvent(dpy, &ev);
 
         switch (ev.type) {
-            case ConfigureRequest:
-                handleConfigureRequest(&ev.xconfigurerequest);
+            case ConfigureRequest: {
+                XConfigureWindow(dpy, ev.xconfigurerequest.window, ev.xconfigurerequest.value_mask, &(XWindowChanges) {
+                    .x = 0,
+                    .y = 0,
+                    .width = ev.xconfigurerequest.width,
+                    .height = ev.xconfigurerequest.height,
+                    .border_width = ev.xconfigurerequest.border_width,
+                    .sibling = ev.xconfigurerequest.above,
+                    .stack_mode = ev.xconfigurerequest.detail
+                });
                 break;
-            case MapRequest:
-                handleMapRequest(&ev.xmaprequest);
+            }
+
+            case MapRequest: {
+                XSelectInput(dpy, ev.xmaprequest.window, StructureNotifyMask | EnterWindowMask);
+                clientAdd(ev.xmaprequest.window);
+                XResizeWindow(dpy, ev.xmaprequest.window, DisplayWidth(dpy, DefaultScreen(dpy)), DisplayHeight(dpy, DefaultScreen(dpy)));
+                XMapWindow(dpy, ev.xmaprequest.window);
                 break;
-            case KeyPress:
-                handleKeyPress(&ev.xkey);
+            }
+                
+            case KeyPress: {
+                KeySym keysym = XkbKeycodeToKeysym(dpy, ev.xkey.keycode, 0, 0);
+
+                for (uint i = 0; i < sizeof (keyBinds) / sizeof (KeyBind); ++i) {
+                    if (keyBinds[i].key == keysym) {
+                        keyBinds[i].func(keyBinds[i].args);
+                    }
+                }
                 break;
-            case DestroyNotify:
-                handleDestroyNotify(&ev.xdestroywindow);
+            }
+                
+            case DestroyNotify: {
+                clientDelete(ev.xdestroywindow.window);
                 break;
-            case MotionNotify:
+            }
+
+            case MotionNotify: {
                 mouse = ev.xbutton;
-                handleMotionNotify(&ev.xmotion);
+                if (isNoClient) break;
+                XMoveWindow(dpy, focusedClient->win, mouse.x_root, mouse.y_root);
                 break;
-            case UnmapNotify:
-                handleUnmapNotify(&ev.xunmap);
+            }
+
+            case UnmapNotify: {
+                clientDelete(ev.xdestroywindow.window);
                 break;
+            }
         }
     }
 }
