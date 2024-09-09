@@ -155,6 +155,7 @@ void loop() {
                 clientAdd(ev.xmaprequest.window);
                 XResizeWindow(dpy, ev.xmaprequest.window, DisplayWidth(dpy, DefaultScreen(dpy)), DisplayHeight(dpy, DefaultScreen(dpy)));
                 XMapWindow(dpy, ev.xmaprequest.window);
+                clientFocus();
                 break;
             }
                 
