@@ -12,19 +12,19 @@
 #include <X11/XF86keysym.h>
 #include <X11/Xutil.h>
 
-typedef struct Client {
+struct Client {
     Window win;
     struct Client *next, *prev;
-} Client;
+};
 
-typedef struct {
+struct KeyBind {
     uint mod;
     KeySym key;
     void (*func)(void **args);
     void **args;
-} KeyBind;
+};
 
-static Client *focusedClient;
+static struct Client *focusedClient;
 static Display *dpy;
 static Window root;
 static bool isNoClient = True;
@@ -55,7 +55,7 @@ void clientPrev() {
 }
 
 void clientAdd(Window win) {
-    Client *newClient = malloc(sizeof (Client));
+    struct Client *newClient = malloc(sizeof (struct Client));
     newClient->win = win;
     if (isNoClient) {
         focusedClient = newClient;
@@ -74,7 +74,7 @@ void clientAdd(Window win) {
 
 void clientDelete(Window win) {
     if (isNoClient) return;
-    Client *client = focusedClient;
+    struct Client *client = focusedClient;
 
     for (client = focusedClient; client->win != win; client = client->next) {
         if (client->next == focusedClient) {
@@ -112,7 +112,7 @@ void clientKill() {
 // change this to whatever mod key you want
 #define MOD_MASK Mod4Mask
 
-static KeyBind keyBinds[] = {
+static struct KeyBind keyBinds[] = {
 //  { mod key,  key,              address of function,     function arguments },
 //                                (must be void func)      (must cast as void ptr array)
     { MOD_MASK, XK_w,                     &clientKill,               0 },
@@ -162,7 +162,7 @@ void loop() {
             case KeyPress: {
                 KeySym keysym = XkbKeycodeToKeysym(dpy, ev.xkey.keycode, 0, 0);
 
-                for (uint i = 0; i < sizeof (keyBinds) / sizeof (KeyBind); ++i) {
+                for (uint i = 0; i < sizeof (keyBinds) / sizeof (struct KeyBind); ++i) {
                     if (keyBinds[i].key == keysym) {
                         keyBinds[i].func(keyBinds[i].args);
                     }
@@ -200,7 +200,7 @@ int main() {
 
     root = DefaultRootWindow(dpy);
 
-    for (uint i = 0; i < sizeof (keyBinds) / sizeof (KeyBind); ++i) {
+    for (uint i = 0; i < sizeof (keyBinds) / sizeof (struct KeyBind); ++i) {
         XGrabKey(dpy, XKeysymToKeycode(dpy, keyBinds[i].key), keyBinds[i].mod, root, true, GrabModeAsync, GrabModeAsync);
     }
     XGrabButton(dpy, 1, MOD_MASK, root, true, ButtonPressMask | ButtonReleaseMask | PointerMotionMask, GrabModeAsync, GrabModeAsync, 0, 0);
