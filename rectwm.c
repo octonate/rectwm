@@ -24,16 +24,20 @@ struct KeyBind {
     void **args;
 };
 
-static struct Client *focusedClient;
-static Display *dpy;
-static Window root;
-static bool isNoClient = True;
-static XButtonEvent mouse;
+struct Client *focusedClient;
+Display *dpy;
+Window root;
+bool isNoClient = True;
+XButtonEvent mouse;
 
 void exec(void *args[]) {
     if (fork() == 0) {
         execvp((char *)args[0], (char **)args);
     }
+}
+
+void exitRectwm() {
+    XCloseDisplay(dpy);
 }
 
 void clientFocus() {
@@ -112,14 +116,14 @@ void clientKill() {
 // change this to whatever mod key you want
 #define MOD_MASK Mod4Mask
 
-static struct KeyBind keyBinds[] = {
+const struct KeyBind keyBinds[] = {
 //  { mod key,  key,              address of function,     function arguments },
 //                                (must be void func)      (must cast as void ptr array)
     { MOD_MASK, XK_w,                     &clientKill,               0 },
     { MOD_MASK, XK_h,                     &clientPrev,               0 },
     { MOD_MASK, XK_l,                     &clientNext,               0 },
+    { MOD_MASK, XK_q,                     &exitRectwm,               0 },
 
-    { MOD_MASK, XK_q,             (void *)&XCloseDisplay, (void *[]){&dpy,        0} },
     { MOD_MASK, XK_Return,                &exec,          (void *[]){"alacritty", 0} },
     { MOD_MASK, XK_b,                     &exec,          (void *[]){"firefox",   0} },
 
