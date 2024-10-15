@@ -1,11 +1,10 @@
-#include <X11/X.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <stdint.h>
 
+#include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
@@ -59,7 +58,7 @@ void clientPrev() {
 }
 
 void clientAdd(Window win) {
-    struct Client *newClient = malloc(sizeof (struct Client));
+    struct Client *newClient = malloc(sizeof(struct Client));
     newClient->win = win;
     if (isNoClient) {
         focusedClient = newClient;
@@ -118,7 +117,7 @@ void clientKill() {
 
 const struct KeyBind keyBinds[] = {
 //  { mod key,  key,              address of function,     function arguments },
-//                                (must be void func)      (must cast as void ptr array)
+//                                (must be void func)      (must cast as void ptr array if any arguments)
     { MOD_MASK, XK_w,                     &clientKill,               0 },
     { MOD_MASK, XK_h,                     &clientPrev,               0 },
     { MOD_MASK, XK_l,                     &clientNext,               0 },
@@ -141,55 +140,44 @@ void loop() {
         XNextEvent(dpy, &ev);
 
         switch (ev.type) {
-            case ConfigureRequest: {
-                XConfigureWindow(dpy, ev.xconfigurerequest.window, ev.xconfigurerequest.value_mask, &(XWindowChanges) {
-                    .x = 0,
-                    .y = 0,
-                    .width = ev.xconfigurerequest.width,
-                    .height = ev.xconfigurerequest.height,
-                    .border_width = ev.xconfigurerequest.border_width,
-                    .sibling = ev.xconfigurerequest.above,
-                    .stack_mode = ev.xconfigurerequest.detail
-                });
-                break;
-            }
+        case ConfigureRequest:
+            XConfigureWindow(dpy, ev.xconfigurerequest.window, ev.xconfigurerequest.value_mask, &(XWindowChanges) {
+                .x = 0,
+                .y = 0,
+                .width = ev.xconfigurerequest.width,
+                .height = ev.xconfigurerequest.height,
+                .border_width = ev.xconfigurerequest.border_width,
+                .sibling = ev.xconfigurerequest.above,
+                .stack_mode = ev.xconfigurerequest.detail });
+            break;
 
-            case MapRequest: {
-                XSelectInput(dpy, ev.xmaprequest.window, StructureNotifyMask | EnterWindowMask);
-                clientAdd(ev.xmaprequest.window);
-                XResizeWindow(dpy, ev.xmaprequest.window, DisplayWidth(dpy, DefaultScreen(dpy)), DisplayHeight(dpy, DefaultScreen(dpy)));
-                XMapWindow(dpy, ev.xmaprequest.window);
-                clientFocus();
-                break;
-            }
-                
-            case KeyPress: {
-                KeySym keysym = XkbKeycodeToKeysym(dpy, ev.xkey.keycode, 0, 0);
-
-                for (uint i = 0; i < sizeof (keyBinds) / sizeof (struct KeyBind); ++i) {
-                    if (keyBinds[i].key == keysym) {
-                        keyBinds[i].func(keyBinds[i].args);
-                    }
+        case MapRequest:
+            XSelectInput(dpy, ev.xmaprequest.window, StructureNotifyMask | EnterWindowMask);
+            clientAdd(ev.xmaprequest.window);
+            XResizeWindow(dpy, ev.xmaprequest.window, DisplayWidth(dpy, DefaultScreen(dpy)), DisplayHeight(dpy, DefaultScreen(dpy)));
+            XMapWindow(dpy, ev.xmaprequest.window);
+            clientFocus();
+            break;
+            
+        case KeyPress:
+            for (uint i = 0; i < sizeof(keyBinds) / sizeof(struct KeyBind); ++i) {
+                if (keyBinds[i].key == XkbKeycodeToKeysym(dpy, ev.xkey.keycode, 0, 0)) {
+                    keyBinds[i].func(keyBinds[i].args);
                 }
-                break;
             }
-                
-            case DestroyNotify: {
-                clientDelete(ev.xdestroywindow.window);
-                break;
-            }
+            break;
+            
+        case UnmapNotify:
+        case DestroyNotify:
+            clientDelete(ev.xdestroywindow.window);
+            break;
 
-            case MotionNotify: {
-                mouse = ev.xbutton;
-                if (isNoClient) break;
-                XMoveWindow(dpy, focusedClient->win, mouse.x_root, mouse.y_root);
-                break;
-            }
+        case MotionNotify:
+            mouse = ev.xbutton;
+            if (isNoClient) break;
+            XMoveWindow(dpy, focusedClient->win, mouse.x_root, mouse.y_root);
+            break;
 
-            case UnmapNotify: {
-                clientDelete(ev.xdestroywindow.window);
-                break;
-            }
         }
     }
 }
@@ -197,14 +185,14 @@ void loop() {
 int main() {
     dpy = XOpenDisplay(NULL);
     if (dpy == NULL) {
-        err(1, "Can't open display :(");
+        err(1, "Can't open display :(\n");
     }
 
     XSetErrorHandler(0);
 
     root = DefaultRootWindow(dpy);
 
-    for (uint i = 0; i < sizeof (keyBinds) / sizeof (struct KeyBind); ++i) {
+    for (uint i = 0; i < sizeof(keyBinds) / sizeof(struct KeyBind); ++i) {
         XGrabKey(dpy, XKeysymToKeycode(dpy, keyBinds[i].key), keyBinds[i].mod, root, true, GrabModeAsync, GrabModeAsync);
     }
     XGrabButton(dpy, 1, MOD_MASK, root, true, ButtonPressMask | ButtonReleaseMask | PointerMotionMask, GrabModeAsync, GrabModeAsync, 0, 0);
