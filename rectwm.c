@@ -97,7 +97,7 @@ void clientDelete(Window win) {
     clientFocus();
 }
 
-void clientKill() {
+void clientClose() {
     if (isNoClient) return;
 
     XEvent killEv;
@@ -110,6 +110,11 @@ void clientKill() {
     XSendEvent(dpy, focusedClient->win, False, NoEventMask, &killEv);
 }
 
+void clientForceKill() {
+    if (isNoClient) return;
+    XKillClient(dpy, focusedClient->win);
+}
+
 /* KEY BIND CONFIGURATION */
 
 // change this to whatever mod key you want
@@ -118,13 +123,15 @@ void clientKill() {
 const struct KeyBind keyBinds[] = {
 //  { mod key,  key,              address of function,     function arguments },
 //                                (must be void func)      (must cast as void ptr array if any arguments)
-    { MOD_MASK, XK_w,                     &clientKill,               0 },
-    { MOD_MASK, XK_h,                     &clientPrev,               0 },
-    { MOD_MASK, XK_l,                     &clientNext,               0 },
-    { MOD_MASK, XK_q,                     &exitRectwm,               0 },
+    { MOD_MASK,           XK_w,           &clientClose,              0 },
+    { MOD_MASK|ShiftMask, XK_w,           &clientForceKill,          0 },
+    { MOD_MASK,           XK_h,           &clientPrev,               0 },
+    { MOD_MASK,           XK_l,           &clientNext,               0 },
+    { MOD_MASK,           XK_q,           &exitRectwm,               0 },
 
     { MOD_MASK, XK_Return,                &exec,          (void *[]){"alacritty", 0} },
     { MOD_MASK, XK_b,                     &exec,          (void *[]){"firefox",   0} },
+    { MOD_MASK, XK_d,                     &exec,          (void *[]){"discord",   0} },
 
     { 0,        XF86XK_MonBrightnessUp,   &exec,          (void *[]){"brightnessctl", "set", "+5",           0} },
     { 0,        XF86XK_MonBrightnessDown, &exec,          (void *[]){"brightnessctl", "set", "5-",           0} },
