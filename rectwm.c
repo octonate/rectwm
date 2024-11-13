@@ -195,6 +195,8 @@ int main() {
         err(1, "Can't open display :(\n");
     }
 
+    setenv("XDG_CURRENT_DESKTOP", "rectwm", 1);
+
     XSetErrorHandler(0);
 
     root = DefaultRootWindow(dpy);
